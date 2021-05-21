@@ -76,6 +76,7 @@ def save_checkpoint(state, filename='checkpoint'):
 
 
 def load_checkpoint(model=None, optimizer=None, filename='checkpoint', logger=cur_logger):
+    print(filename)
     if os.path.isfile(filename):
         logger.info("==> Loading from checkpoint '{}'".format(filename))
         checkpoint = torch.load(filename)

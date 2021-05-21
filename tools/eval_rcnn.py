@@ -139,6 +139,7 @@ def eval_one_epoch_rpn(model, dataloader, epoch_id, result_dir, logger):
             data['sample_id'], data['pts_rect'], data['pts_features'], data['pts_input']
         sample_id = sample_id_list[0]
         cnt += len(sample_id_list)
+        print('cnt: ' + str(cnt))
 
         if not args.test:
             rpn_cls_label, rpn_reg_label = data['rpn_cls_label'], data['rpn_reg_label']

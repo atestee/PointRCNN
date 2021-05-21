@@ -5,7 +5,6 @@ from lib.config import cfg
 import lib.utils.kitti_utils as kitti_utils
 import lib.utils.iou3d.iou3d_utils as iou3d_utils
 
-
 class ProposalLayer(nn.Module):
     def __init__(self, mode='TRAIN'):
         super().__init__()
@@ -73,8 +72,10 @@ class ProposalLayer(nn.Module):
         # sort by score
         scores_ordered = scores[order]
         proposals_ordered = proposals[order]
+        #print(np.shape(proposals))
 
-        dist = proposals_ordered[:, 2]
+        # z coordinate
+        dist = torch.abs(proposals_ordered[:, 0])
         first_mask = (dist > nms_range_list[0]) & (dist <= nms_range_list[1])
         for i in range(1, len(nms_range_list)):
             # get proposal distance mask
