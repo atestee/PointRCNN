@@ -4,6 +4,8 @@ from lib.utils.bbox_transform import decode_bbox_target
 from lib.config import cfg
 import lib.utils.kitti_utils as kitti_utils
 import lib.utils.iou3d.iou3d_utils as iou3d_utils
+from numpy import linalg as LA
+import numpy as np
 
 class ProposalLayer(nn.Module):
     def __init__(self, mode='TRAIN'):
@@ -36,6 +38,7 @@ class ProposalLayer(nn.Module):
         batch_size = scores.size(0)
         ret_bbox3d = scores.new(batch_size, cfg[self.mode].RPN_POST_NMS_TOP_N, 7).zero_()
         ret_scores = scores.new(batch_size, cfg[self.mode].RPN_POST_NMS_TOP_N).zero_()
+        #print(ret_bbox3d)
         for k in range(batch_size):
             scores_single = scores[k]
             proposals_single = proposals[k]
@@ -51,8 +54,8 @@ class ProposalLayer(nn.Module):
             proposals_tot = proposals_single.size(0)
             ret_bbox3d[k, :proposals_tot] = proposals_single
             ret_scores[k, :proposals_tot] = scores_single
-
-        return ret_bbox3d, ret_scores
+            #print(ret_bbox3d)
+        return ret_bbox3d[:, :proposals_tot], ret_scores[:, :proposals_tot]
 
     def distance_based_proposal(self, scores, proposals, order):
         """
@@ -61,7 +64,7 @@ class ProposalLayer(nn.Module):
         :param proposals: (N, 7)
         :param order: (N)
         """
-        nms_range_list = [0, 40.0, 80.0]
+        nms_range_list = [0, 40, 80.0]
         pre_tot_top_n = cfg[self.mode].RPN_PRE_NMS_TOP_N
         pre_top_n_list = [0, int(pre_tot_top_n * 0.7), pre_tot_top_n - int(pre_tot_top_n * 0.7)]
         post_tot_top_n = cfg[self.mode].RPN_POST_NMS_TOP_N
@@ -75,12 +78,16 @@ class ProposalLayer(nn.Module):
         #print(np.shape(proposals))
 
         # z coordinate
-        dist = torch.abs(proposals_ordered[:, 0])
-        first_mask = (dist > nms_range_list[0]) & (dist <= nms_range_list[1])
+        #print(proposals_ordered[:, 2])
+        np_proposals_ordered = proposals_ordered.detach().cpu().numpy()
+        dist = np.apply_along_axis(LA.norm, 1, np_proposals_ordered)       
+        #print(dist)
+        mask1 = (dist > nms_range_list[0]) & (dist <= nms_range_list[1])
+        first_mask = mask1 * 1.0
         for i in range(1, len(nms_range_list)):
             # get proposal distance mask
-            dist_mask = ((dist > nms_range_list[i - 1]) & (dist <= nms_range_list[i]))
-
+            mask2 = ((dist > nms_range_list[i - 1]) & (dist <= nms_range_list[i]))
+            dist_mask = mask2 * 1
             if dist_mask.sum() != 0:
                 # this area has points
                 # reduce by mask
@@ -95,6 +102,7 @@ class ProposalLayer(nn.Module):
                 # this area doesn't have any points, so use rois of first area
                 cur_scores = scores_ordered[first_mask]
                 cur_proposals = proposals_ordered[first_mask]
+                # print(cur_proposals)
 
                 # fetch top K of first area
                 cur_scores = cur_scores[pre_top_n_list[i - 1]:][:pre_top_n_list[i]]
@@ -111,12 +119,16 @@ class ProposalLayer(nn.Module):
 
             # Fetch post nms top k
             keep_idx = keep_idx[:post_top_n_list[i]]
-
-            scores_single_list.append(cur_scores[keep_idx])
-            proposals_single_list.append(cur_proposals[keep_idx])
+            cur_scores = cur_scores[keep_idx]
+            cur_proposals = cur_proposals[keep_idx]
+#            print(cur_scores)
+#            print(cur_proposals[cur_scores != 0])
+            scores_single_list.append(cur_scores)
+            proposals_single_list.append(cur_proposals)
 
         scores_single = torch.cat(scores_single_list, dim=0)
         proposals_single = torch.cat(proposals_single_list, dim=0)
+        #print(proposals_single)
         return scores_single, proposals_single
 
     def score_based_proposal(self, scores, proposals, order):

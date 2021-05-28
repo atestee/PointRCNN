@@ -76,7 +76,7 @@ def save_checkpoint(state, filename='checkpoint'):
 
 
 def load_checkpoint(model=None, optimizer=None, filename='checkpoint', logger=cur_logger):
-    print(filename)
+    #print(filename)
     if os.path.isfile(filename):
         logger.info("==> Loading from checkpoint '{}'".format(filename))
         checkpoint = torch.load(filename)
@@ -186,6 +186,7 @@ class Trainer(object):
 
                 # train one epoch
                 for cur_it, batch in enumerate(train_loader):
+                    
                     if lr_scheduler_each_iter:
                         self.lr_scheduler.step(it)
                         cur_lr = float(self.optimizer.lr)
@@ -198,6 +199,7 @@ class Trainer(object):
                             cur_lr = self.lr_scheduler.get_lr()[0]
 
                     loss, tb_dict, disp_dict = self._train_it(batch)
+                    #print('iter: ' + str(it) + 'loss: ' + str(loss))
                     it += 1
 
                     disp_dict.update({'loss': loss, 'lr': cur_lr})

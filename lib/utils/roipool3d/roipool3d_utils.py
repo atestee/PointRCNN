@@ -16,7 +16,8 @@ def roipool3d_gpu(pts, pts_feature, boxes3d, pool_extra_width, sampled_pt_num=51
         pooled_empty_flag: (B, M)
     """
     batch_size, boxes_num, feature_len = pts.shape[0], boxes3d.shape[1], pts_feature.shape[2]
-    pooled_boxes3d = kitti_utils.enlarge_box3d(boxes3d.view(-1, 7), pool_extra_width).view(batch_size, -1, 7)
+    #print(boxes3d.contiguous().view(-1, 7))
+    pooled_boxes3d = kitti_utils.enlarge_box3d(boxes3d.contiguous().view(-1, 7), pool_extra_width).view(batch_size, -1, 7)
 
     pooled_features = torch.cuda.FloatTensor(torch.Size((batch_size, boxes_num,
                                                          sampled_pt_num, 3 + feature_len))).zero_()

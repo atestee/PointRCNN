@@ -14,7 +14,7 @@ class KittiRCNNDataset(KittiDataset):
                  logger=None, rcnn_training_roi_dir=None, rcnn_training_feature_dir=None, rcnn_eval_roi_dir=None,
                  rcnn_eval_feature_dir=None, gt_database_dir=None):
         super().__init__(root_dir=root_dir, split=split)
-        if classes == 'Car':
+        if classes == 'rescue_randy':
             self.classes = ('Background', 'rescue_randy')
             aug_scene_root_dir = os.path.join(root_dir, 'KITTI', 'aug_scene')
         elif classes == 'People':
@@ -171,6 +171,7 @@ class KittiRCNNDataset(KittiDataset):
             if self.mode == 'TRAIN' and cfg.PC_REDUCE_BY_RANGE and (self.check_pc_range(obj.pos) is False):
                 #print('NOT IN RANGE: ' + str(obj.cls_type))
                 continue
+            #print(str(obj.cls_type) + 'ELIGIBLE')
             valid_obj_list.append(obj)
         return valid_obj_list
 
@@ -327,6 +328,7 @@ class KittiRCNNDataset(KittiDataset):
         if cfg.GT_AUG_ENABLED and self.mode == 'TRAIN' and gt_aug_flag:
             gt_obj_list.extend(extra_gt_obj_list)
         gt_boxes3d = kitti_utils.objs_to_boxes3d(gt_obj_list)
+        #print(str(sample_id) + ' gt_boxes3d: ' + str(gt_boxes3d))
 
         gt_alpha = np.zeros((gt_obj_list.__len__()), dtype=np.float32)
         for k, obj in enumerate(gt_obj_list):
@@ -372,6 +374,7 @@ class KittiRCNNDataset(KittiDataset):
         extend_gt_corners = kitti_utils.boxes3d_to_corners3d(extend_gt_boxes3d, rotate=True)
         for k in range(gt_boxes3d.shape[0]):
             box_corners = gt_corners[k]
+            # get points that are in bounding box
             fg_pt_flag = kitti_utils.in_hull(pts_rect, box_corners)
             fg_pts_rect = pts_rect[fg_pt_flag]
             cls_label[fg_pt_flag] = 1

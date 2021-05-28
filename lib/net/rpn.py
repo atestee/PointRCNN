@@ -75,9 +75,10 @@ class RPN(nn.Module):
 
         rpn_cls = self.rpn_cls_layer(backbone_features).transpose(1, 2).contiguous()  # (B, N, 1)
         rpn_reg = self.rpn_reg_layer(backbone_features).transpose(1, 2).contiguous()  # (B, N, C)
-
+        #print('rpn_reg: ' + str(rpn_reg))
+        #print('rpn_cls: ' + str(rpn_cls))
         ret_dict = {'rpn_cls': rpn_cls, 'rpn_reg': rpn_reg,
                     'backbone_xyz': backbone_xyz, 'backbone_features': backbone_features}
-
+        
         return ret_dict
 

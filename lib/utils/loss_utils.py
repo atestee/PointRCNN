@@ -229,5 +229,8 @@ def get_reg_loss(pred_reg, reg_label, loc_scope, loc_bin_size, num_head_bin, anc
     reg_loss_dict['loss_loc'] = loc_loss
     reg_loss_dict['loss_angle'] = angle_loss
     reg_loss_dict['loss_size'] = size_loss
+    #print('loss_loc: '+ str(loc_loss))
+    #print('loss_angle: ' + str(angle_loss))
+    #print('loss_size: ' + str(size_loss))
 
     return loc_loss, angle_loss, size_loss, reg_loss_dict

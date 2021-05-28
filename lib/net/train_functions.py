@@ -12,11 +12,18 @@ def model_joint_fn_decorator():
 
     def model_fn(model, data):
         if cfg.RPN.ENABLED:
+            # print('data keys: ' + str(data.keys()))  -> ['sample_id', 'random_select', 'pts_input', 'pts_rect', 'pts_features', 'rpn_cls_label', 'rpn_reg_label', 'gt_boxes3d']
             pts_rect, pts_features, pts_input = data['pts_rect'], data['pts_features'], data['pts_input']
+            # 8 bounding boxes
             gt_boxes3d = data['gt_boxes3d']
+            # print('gt_boxes3d: ' + str(gt_boxes3d))        
 
             if not cfg.RPN.FIXED:
                 rpn_cls_label, rpn_reg_label = data['rpn_cls_label'], data['rpn_reg_label']
+                #for i in range(len(rpn_cls_label)):
+                #    if any(rpn_cls_label[i]):
+                #        print(any(rpn_cls_label[i])) 
+                # print('rpn_reg_label: ' + str(rpn_reg_label))
                 rpn_cls_label = torch.from_numpy(rpn_cls_label).cuda(non_blocking=True).long()
                 rpn_reg_label = torch.from_numpy(rpn_reg_label).cuda(non_blocking=True).float()
 
@@ -33,6 +40,9 @@ def model_joint_fn_decorator():
                 input_data['pts_input'] = pts_input
 
         ret_dict = model(input_data)
+        # print('ret_dict keys: ' + str(ret_dict.keys())) -> ['rpn_cls', 'rpn_reg', 'backbone_xyz', 'backbone_features']
+        #print('rpn_cls: ' + str(ret_dict['rpn_cls']))
+        #print('rpn_reg: ' + str(ret_dict['rpn_reg']))
 
         tb_dict = {}
         disp_dict = {}
@@ -42,6 +52,7 @@ def model_joint_fn_decorator():
             rpn_loss = get_rpn_loss(model, rpn_cls, rpn_reg, rpn_cls_label, rpn_reg_label, tb_dict)
             loss += rpn_loss
             disp_dict['rpn_loss'] = rpn_loss.item()
+            #print('rpn_loss.item(): ' + str(rpn_loss.item()))
 
         if cfg.RCNN.ENABLED:
             rcnn_loss = get_rcnn_loss(model, ret_dict, tb_dict)

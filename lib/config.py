@@ -7,7 +7,7 @@ cfg = __C
 
 # 0. basic config
 __C.TAG = 'default'
-__C.CLASSES = 'Car'
+__C.CLASSES = 'rescue_randy'
 
 __C.INCLUDE_SIMILAR_TYPE = False
 

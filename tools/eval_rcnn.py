@@ -41,7 +41,7 @@ parser.add_argument("--extra_tag", type=str, default='default', help="extra tag 
 parser.add_argument('--output_dir', type=str, default=None, help='specify an output directory if needed')
 parser.add_argument("--ckpt_dir", type=str, default=None, help="specify a ckpt directory to be evaluated if needed")
 
-parser.add_argument('--save_result', action='store_true', default=False, help='save evaluation results to files')
+parser.add_argument('--save_result', action='store_true', default=True, help='save evaluation results to files')
 parser.add_argument('--save_rpn_feature', action='store_true', default=False,
                     help='save features for separately rcnn training and evaluation')
 
@@ -80,14 +80,14 @@ def save_kitti_format(sample_id, calib, bbox3d, kitti_output_dir, scores, img_sh
     box_valid_mask = np.logical_and(img_boxes_w < img_shape[1] * 0.8, img_boxes_h < img_shape[0] * 0.8)
 
     kitti_output_file = os.path.join(kitti_output_dir, '%06d.txt' % sample_id)
+    #print(box_valid_mask)
     with open(kitti_output_file, 'w') as f:
         for k in range(bbox3d.shape[0]):
-            if box_valid_mask[k] == 0:
-                continue
+            #if box_valid_mask[k] == 0:
+            #    continue
             x, z, ry = bbox3d[k, 0], bbox3d[k, 2], bbox3d[k, 6]
             beta = np.arctan2(z, x)
             alpha = -np.sign(beta) * np.pi / 2 + beta + ry
-
             print('%s -1 -1 %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f' %
                   (cfg.CLASSES, alpha, img_boxes[k, 0], img_boxes[k, 1], img_boxes[k, 2], img_boxes[k, 3],
                    bbox3d[k, 3], bbox3d[k, 4], bbox3d[k, 5], bbox3d[k, 0], bbox3d[k, 1], bbox3d[k, 2],
@@ -139,7 +139,7 @@ def eval_one_epoch_rpn(model, dataloader, epoch_id, result_dir, logger):
             data['sample_id'], data['pts_rect'], data['pts_features'], data['pts_input']
         sample_id = sample_id_list[0]
         cnt += len(sample_id_list)
-        print('cnt: ' + str(cnt))
+        #print('cnt: ' + str(cnt))
 
         if not args.test:
             rpn_cls_label, rpn_reg_label = data['rpn_cls_label'], data['rpn_reg_label']
@@ -166,6 +166,7 @@ def eval_one_epoch_rpn(model, dataloader, epoch_id, result_dir, logger):
 
         # proposal layer
         rois, roi_scores_raw = model.rpn.proposal_layer(rpn_scores_raw, rpn_reg, backbone_xyz)  # (B, M, 7)
+        #print(rois)
         batch_size = rois.shape[0]
 
         # calculate recall and save results to file
@@ -228,6 +229,7 @@ def eval_one_epoch_rpn(model, dataloader, epoch_id, result_dir, logger):
                 calib = dataset.get_calib(cur_sample_id)
                 cur_boxes3d = cur_boxes3d.cpu().numpy()
                 image_shape = dataset.get_image_shape(cur_sample_id)
+                #print(cur_boxes3d)
                 save_kitti_format(cur_sample_id, calib, cur_boxes3d, kitti_output_dir, cur_scores_raw, image_shape)
 
         disp_dict = {'mode': mode, 'recall': '%d/%d' % (total_recalled_bbox_list[3], total_gt_bbox),
@@ -446,7 +448,7 @@ def eval_one_epoch_rcnn(model, dataloader, epoch_id, result_dir, logger):
 
     if cfg.TEST.SPLIT != 'test':
         logger.info('Averate Precision:')
-        name_to_class = {'Car': 0, 'Pedestrian': 1, 'Cyclist': 2}
+        name_to_class = {'rescue_randy': 0, 'backpack': 1, 'extinguisher': 2, 'drill' : 3, 'helmet' : 4}
         ap_result_str, ap_dict = kitti_evaluate(dataset.label_dir, final_output_dir, label_split_file=split_file,
                                                 current_class=name_to_class[cfg.CLASSES])
         logger.info(ap_result_str)
@@ -507,7 +509,7 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
         if cfg.RCNN.SIZE_RES_ON_ROI:
             assert False
 
-        pred_boxes3d = decode_bbox_target(roi_boxes3d.view(-1, 7), rcnn_reg.view(-1, rcnn_reg.shape[-1]),
+        pred_boxes3d = decode_bbox_target(roi_boxes3d.contiguous().view(-1, 7), rcnn_reg.view(-1, rcnn_reg.shape[-1]),
                                           anchor_size=anchor_size,
                                           loc_scope=cfg.RCNN.LOC_SCOPE,
                                           loc_bin_size=cfg.RCNN.LOC_BIN_SIZE,
@@ -674,7 +676,7 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
 
     if cfg.TEST.SPLIT != 'test':
         logger.info('Averate Precision:')
-        name_to_class = {'Car': 0, 'Pedestrian': 1, 'Cyclist': 2}
+        name_to_class = {'rescue_randy': 0, 'backpack': 1, 'extinguisher': 2, 'drill' : 3, 'helmet' : 4}
         ap_result_str, ap_dict = kitti_evaluate(dataset.label_dir, final_output_dir, label_split_file=split_file,
                                                 current_class=name_to_class[cfg.CLASSES])
         logger.info(ap_result_str)
